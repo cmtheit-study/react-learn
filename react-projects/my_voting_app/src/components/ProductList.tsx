@@ -1,9 +1,9 @@
 import React from "react";
-import {Product, ProductProp} from "./ProductList/Product";
+import {Product, ProductProp, ProductPropData} from "./ProductList/Product";
 
 // 数据平面
 export interface ProductListPropData {
-  lists: ProductProp[],
+  lists: ProductPropData[],
 }
 
 // 行为平面
