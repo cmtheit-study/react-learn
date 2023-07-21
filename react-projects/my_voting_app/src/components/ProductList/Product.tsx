@@ -1,6 +1,7 @@
 import React from "react";
 
-export interface ProductProp {
+// 数据平面
+export interface ProductPropData {
   id: number,
   title: string,
   description: string,
@@ -10,15 +11,22 @@ export interface ProductProp {
   productImageUrl: string,    // 产品图片
 }
 
+// 行为平面
+export interface ProductPropAction {
+  onVote: () => void
+}
+
+export type ProductProp = ProductPropData & ProductPropAction;
+
 export function Product(
   {
-    id,
     title,
     description,
     url,
     votes,
     submitterAvatarUrl,
-    productImageUrl
+    productImageUrl,
+    onVote
   }: ProductProp) {
 
   return (
@@ -32,8 +40,13 @@ export function Product(
         </div>
         <div className={"flex flex-col justify-around items-start col-span-2"}>
           <div className={"col-span-2"}>
-            👆🏻
-            <span className={"font-bold text-xl"}>
+            <span
+              className={"px-1 cursor-pointer selection:bg-none"}
+              onClick={onVote}
+            >
+              👆🏻
+            </span>
+            <span className={"font-bold text-xl selection:bg-none"}>
               {votes}
             </span>
           </div>

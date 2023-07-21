@@ -1,11 +1,19 @@
 import React from "react";
 import {Product, ProductProp} from "./ProductList/Product";
 
-export interface ProductListProp {
-  lists: ProductProp[]
+// 数据平面
+export interface ProductListPropData {
+  lists: ProductProp[],
 }
 
-export function ProductList({lists}: ProductListProp) {
+// 行为平面
+export interface ProductListPropAction {
+  onVote: (productId: number) => void
+}
+
+export type ProductListProp = ProductListPropData & ProductListPropAction;
+
+export function ProductList({lists, onVote}: ProductListProp) {
   const products = lists.map((data) => {
     return (
       <div className={"p-2"} key={data.id}>
@@ -17,6 +25,7 @@ export function ProductList({lists}: ProductListProp) {
           votes={data.votes}
           submitterAvatarUrl={data.submitterAvatarUrl}
           productImageUrl={data.productImageUrl}
+          onVote={() => onVote(data.id)}
         />
       </div>
       //todo: 这里怎么减少冗余代码？？
