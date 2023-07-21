@@ -34,7 +34,7 @@ export function Product(
       <div className={"grid grid-cols-3 grid-rows-1 gap-10"}>
         <div className={"col-span-1"}>
           <img
-            src={`./public/images/products/products/${productImageUrl}`}
+            src={`./images/products/products/${productImageUrl}`}
             alt={`产品${title}图片`}
           />
         </div>
@@ -61,7 +61,7 @@ export function Product(
             <span>
               <img
                 className={"w-12 inline rounded-full"}
-                src={`./public/images/products/avatars/${submitterAvatarUrl}`}
+                src={`./images/products/avatars/${submitterAvatarUrl}`}
                 alt={`产品${title}发布者头像`}
               />
             </span>

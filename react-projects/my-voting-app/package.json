@@ -18,6 +18,7 @@
     "typescript": "^5.1.6",
     "vite": "^4.4.5"
   },
+  "homepage": "https://cmtheit-study.github.io/react-projects/my_voting_app",
   "dependencies": {
     "autoprefixer": "^10.4.14",
     "postcss": "^8.4.26",
