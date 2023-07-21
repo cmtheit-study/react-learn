@@ -18,7 +18,15 @@ export interface ProductPropAction {
 
 export type ProductProp = ProductPropData & ProductPropAction;
 
-export function Product(
+export function genProductImageUrl(productImageName: string): string {
+  return `./images/products/products/${productImageName}`
+}
+
+export function genSubmitterAvatarUrl(submitterAvatarName: string): string {
+  return `./images/products/avatars/${submitterAvatarName}`
+}
+
+export default function Product(
   {
     title,
     description,
@@ -28,13 +36,12 @@ export function Product(
     productImageUrl,
     onVote
   }: ProductProp) {
-
   return (
     <>
       <div className={"grid grid-cols-3 grid-rows-1 gap-10"}>
         <div className={"col-span-1"}>
           <img
-            src={`./images/products/products/${productImageUrl}`}
+            src={genProductImageUrl(productImageUrl)}
             alt={`产品${title}图片`}
           />
         </div>
@@ -61,7 +68,7 @@ export function Product(
             <span>
               <img
                 className={"w-12 inline rounded-full"}
-                src={`./images/products/avatars/${submitterAvatarUrl}`}
+                src={genSubmitterAvatarUrl(submitterAvatarUrl)}
                 alt={`产品${title}发布者头像`}
               />
             </span>
