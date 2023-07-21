@@ -18,13 +18,7 @@ export function ProductList({lists, onVote}: ProductListProp) {
     return (
       <div className={"p-2"} key={data.id}>
         <Product
-          id={data.id}
-          title={data.title}
-          description={data.description}
-          url={data.url}
-          votes={data.votes}
-          submitterAvatarUrl={data.submitterAvatarUrl}
-          productImageUrl={data.productImageUrl}
+          {...data}
           onVote={() => onVote(data.id)}
         />
       </div>

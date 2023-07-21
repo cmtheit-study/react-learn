@@ -34,11 +34,11 @@ export function Product(
       <div className={"grid grid-cols-3 grid-rows-1 gap-10"}>
         <div className={"col-span-1"}>
           <img
-            src={`/assets/images/products/products/${productImageUrl}`}
+            src={`./assets/images/products/products/${productImageUrl}`}
             alt={`产品${title}图片`}
           />
         </div>
-        <div className={"flex flex-col justify-around items-start col-span-2"}>
+        <div className={"flex flex-col justify-evenly items-start col-span-2"}>
           <div className={"col-span-2"}>
             <span
               className={"px-1 cursor-pointer selection:bg-none"}
@@ -51,7 +51,7 @@ export function Product(
             </span>
           </div>
           <div>
-            <a className={"no-underline hover:underline"} href={url}>
+            <a className={"text-blue-600 no-underline hover:underline"} href={url}>
               {title}
             </a>
           </div>
@@ -61,7 +61,7 @@ export function Product(
             <span>
               <img
                 className={"w-12 inline rounded-full"}
-                src={`/assets/images/products/avatars/${submitterAvatarUrl}`}
+                src={`./assets/images/products/avatars/${submitterAvatarUrl}`}
                 alt={`产品${title}发布者头像`}
               />
             </span>

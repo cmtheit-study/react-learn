@@ -20,7 +20,7 @@ export function App(){
       description: "We already have your measurements and shipping address.",
       submitterAvatarUrl: "veronika.jpg",
       productImageUrl: "image-steel.png",
-    },]
+    }]
   } as ProductListPropData)
 
   function handleVote(productId: number) {
@@ -35,13 +35,12 @@ export function App(){
   return (
     <>
       <div className={"w-full"}>
-        <div className={"m-auto w-4/5"}>
+        <div className={"m-auto w-4/5"} style={{"max-width": "50em"}}>
           <div className={"m-3"}>
             <Title content={"产品列表"} />
           </div>
-          <ProductList lists={productListProp.lists} onVote={handleVote}/>
+          <ProductList {...productListProp} onVote={handleVote}/>
         </div>
-
       </div>
     </>
   )
