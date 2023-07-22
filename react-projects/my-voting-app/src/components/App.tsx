@@ -53,21 +53,23 @@ export function App(){
           show={modalShow}
           onHide={() => setModalShow(false)}
         >
-          <div className={"flex flex-col items-center h-full justify-between"}>
+          {approvedSubmitter ?
+            <div className={"flex flex-col items-center h-full justify-between"}>
             <div>
               恭喜投票成功
+              </div>
+              <div>
+                <img
+                  className={"w-40 rounded-full"}
+                  src={genSubmitterAvatarUrl(approvedSubmitter.submitterAvatarUrl)}
+                  alt={`${approvedSubmitter.title}的发布者头像`}
+                />
+              </div>
+              <div className={"m-2 text-2xl font-bold"}>
+                感谢您的支持！
+              </div>
             </div>
-            <div>
-              <img
-                className={"w-40 rounded-full"}
-                src={genSubmitterAvatarUrl(approvedSubmitter?.submitterAvatarUrl)}
-                alt={`${approvedSubmitter?.title}的发布者头像`}
-              />
-            </div>
-            <div className={"m-2 text-2xl font-bold"}>
-              感谢您的支持！
-            </div>
-          </div>
+            : null}
         </Modal>
       </div>
     </>
