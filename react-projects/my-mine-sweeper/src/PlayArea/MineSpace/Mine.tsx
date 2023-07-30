@@ -1,24 +1,46 @@
-import React from "react";
+import React, {useMemo} from "react";
+import {PlayArea} from "../../PlayArea";
+import {App} from "../../App";
+import {flushSync} from "react-dom";
 
-// 地雷组件命名空间
+// 地雷组件
 export namespace Mine {
-    export interface State {
-        name: "plain" | "checked" | "boom" | "flagged",
-        img: string | string[]
+    // 地雷类型
+    export enum Type {
+        boom,
+        nBoom,
+    }
+
+    export type MineBaseState = 'unchecked' | 'flagged'
+
+    interface BaseData<S extends string> {
+        type: Type
+        state: MineBaseState | S
+    }
+
+    export interface BoomData extends BaseData<'boomed'> {
+        type: Type.boom,
+        isMainBoom?: boolean
+    }
+
+    export interface NBoomData extends BaseData<'checked'>{
+        type: Type.nBoom,
+        surround?: number
     }
 
     /** todo: 这里的数据如何避免写到 ts。我觉得放到静态资源中挺好
      * 地雷的所有可用状态
      */
-    export const states: State[] = [{
-        name: "plain",
-        img: "data:img/gif;base64,R0lGODlhGQAZAJEAAP///8DAwICAgAAAACH5BAQUAP8ALAAAAAAZABkAAAJKhI+pFrH/GpwnCFGb3nxfzHQi92XjWYbnmAIrepkvGauzV7s3Deq71vrhekJgrtgIIpVFptD5g+6kN+osZflot9xPsgvufsPkSwEAOw",
-    }, {
-        name: "flagged",
-        img: "data:img/gif;base64,R0lGODlhGQAZAKIAAP///8DAwICAgP8AAAAAAAAAAAAAAAAAACH5BAAHAP8ALAAAAAAZABkAAANsCLrcriG8OSO9KwiRo//gt3FQaIJjZw7DmZYh25ovEMtzWH+47G6qno8GhAWEOVTRBur9SMxbUrQ8BQiEpyqE1RpBXSLUGtZVI9i0Wu3ZodfwbMR9ja/bZ6s3qjeTNCOBgoMjc4SHhIaIixsJADs="
-    }, {
-        name: "checked",
-        img: [
+    const appearances: {
+        [key in BoomData['state'] | NBoomData['state']]: string[]
+    } = {
+        unchecked: [
+            "data:img/gif;base64,R0lGODlhGQAZAJEAAP///8DAwICAgAAAACH5BAQUAP8ALAAAAAAZABkAAAJKhI+pFrH/GpwnCFGb3nxfzHQi92XjWYbnmAIrepkvGauzV7s3Deq71vrhekJgrtgIIpVFptD5g+6kN+osZflot9xPsgvufsPkSwEAOw"
+        ],
+        flagged: [
+            "data:img/gif;base64,R0lGODlhGQAZAKIAAP///8DAwICAgP8AAAAAAAAAAAAAAAAAACH5BAAHAP8ALAAAAAAZABkAAANsCLrcriG8OSO9KwiRo//gt3FQaIJjZw7DmZYh25ovEMtzWH+47G6qno8GhAWEOVTRBur9SMxbUrQ8BQiEpyqE1RpBXSLUGtZVI9i0Wu3ZodfwbMR9ja/bZ6s3qjeTNCOBgoMjc4SHhIaIixsJADs="
+        ],
+        checked: [
             "data:img/gif;base64,R0lGODlhGQAZAKIAAM7OzsbGxr6+vra2trKysqampoKCggAAACH5BAAHAP8ALAAAAAAZABkAAANHaLrc3mWQSau9xAwQuv9gGBhEIJxoqq4CabLw6sY0Otf0jcP6Lpc+HjD4exFTvWNrqDwlj09iNDj1VXdXXLa2zTGb3VgYlgAAOw==", // 周围没有炸弹
             "data:img/gif;base64,R0lGODlhGQAZAJEAAMDAwICAgAAA/wAAACH5BAQUAP8ALAAAAAAZABkAAAJMjI+py70Ao5wUmorxzTxuLIRC9lFiSAbZOWqqybZVCcWoC8fpeu5gj/uJfBUWMXebvYpAJdJGoQFsTc8yQh1OpJ3otesEH8XbLzlSAAA7",             // 周围有一个炸弹
             "data:img/gif;base64,R0lGODlhGQAZALMAAMDAwKu5q6i4qKW3pZy0nJaylpCwkIquioCAgACAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAAHAP8ALAAAAAAZABkAAAReEMlJq704X8C7/yAnhSQ5lmh3cknrvi64wvT7zXV9I50N+ipeihXzrFACoEhYMtB2pSSsIGN6CrRBIHQEEGjb0pEmGOJch+Gyl3samW13kB0vztViKx665+r7a4AfEQA7", // 2 炸弹
@@ -28,58 +50,76 @@ export namespace Mine {
             "data:img/gif;base64,R0lGODlhGQAZAJEAAMDAwICAgACAgAAAACH5BAQUAP8ALAAAAAAZABkAAAJTjI+py70Ao5wUmorxzTxuKITiKFIfiZbTmaJmEI3dCoPqbNWAjOdxS3r9gDyPjhiUsEKVos/GpDgBS0Hz9twhsdTjNmqUfIU9ja5MQ1c+6nBbUgAAOw==", // 6 炸弹
             "data:img/gif;base64,R0lGODlhGQAZAJEAAL6+voKCggAAAAAAACH5BAAHAP8ALAAAAAAZABkAAAJMjI+py70Ao5wUmorxzTxuIITiSE4fiY5mEKXu2rUiHIOz9HElznY771NRcpQfrWI8TpJK2S1DtD2hPWeoRhTGojVgV1P9NsWWMBlSAAA7", // 7 炸弹
             "data:img/gif;base64,R0lGODlhGQAZAIAAAMDAwICAgCH5BAQUAP8ALAAAAAAZABkAAAJKjI+py70Ao5wUmorxzTxu63xeMIYi8JnHlK4UwpLgOctjaUuwnqtvb/rxQsJaZXcz/k4tGsqVfPp4OCK1yih2OM7t1avJgWNjTAEAOw==", // 8 炸弹
-        ]
-    }, {
-        name: "boom",
-        img: [
-            "data:img/gif;base64,R0lGODlhGQAZAJEAAP///76+voKCggAAACH5BAAHAP8ALAAAAAAZABkAAAJglI+py70Bo5wUmhrHwPFyzVlCCIYeBGqqik5nkK4s7I6TjFOvCvR42bGhND3AbyPZEX2/GuwILV2iUZGEOgtesUhthuu8VcNbqE74fOZoSTQFiHm9u3G3OBSQ4yv6/aQAADs=",
-            "data:img/gif;base64,R0lGODlhGQAZAJEAAP///4CAgP8AAAAAACH5BAQUAP8ALAAAAAAZABkAAAJgjI+py70Co5wUmhrHwPFyzVlBCIYeBGqqik6nkK4s7I6TjFOvCvR42bGhND3AbyPZEX2/GuwILV2iUZGEOgtesUhthuu8VcNbqE74fOZoSTQFiHm9u3G3OCSQ4yv6/aQAADs="
-        ]
-    }]
-
-    export function getState(name: State["name"]): State {
-        return states.find(s => s.name == name)
+        ],
+        boomed: [
+            "data:img/gif;base64,R0lGODlhGQAZAJEAAP///4CAgP8AAAAAACH5BAQUAP8ALAAAAAAZABkAAAJgjI+py70Co5wUmhrHwPFyzVlBCIYeBGqqik6nkK4s7I6TjFOvCvR42bGhND3AbyPZEX2/GuwILV2iUZGEOgtesUhthuu8VcNbqE74fOZoSTQFiHm9u3G3OCSQ4yv6/aQAADs=",
+            "data:img/gif;base64,R0lGODlhGQAZAJEAAP///76+voKCggAAACH5BAAHAP8ALAAAAAAZABkAAAJglI+py70Bo5wUmhrHwPFyzVlCCIYeBGqqik5nkK4s7I6TjFOvCvR42bGhND3AbyPZEX2/GuwILV2iUZGEOgtesUhthuu8VcNbqE74fOZoSTQFiHm9u3G3OBSQ4yv6/aQAADs="
+        ],
     }
 
-    export interface PropData {
-        isMainBoom: boolean,  // 是否是被手动触发的地雷，当手动触发一个地雷，其他地雷都自动触发
-        state: State,
-        aroundMineNum: number
+    export function getAppearance(data: Data): string {
+        switch (data.state) {
+            case 'unchecked':
+            case 'flagged':
+                return appearances[data.state][0]
+            case 'checked':
+                return appearances.checked[data.surround]
+            case 'boomed':
+                return appearances.boomed[data.isMainBoom ? 0 : 1]
+        }
     }
 
-    export interface PropAction {
-        onCheck(): void;    // 点击触发
-        onFlag(): void;     // 插旗
+    export namespace Prop {
+        interface Data {
+            i: number,
+            j: number,
+        }
+        interface Action {
+        }
+        export type T = Data & Action;
     }
 
-    export type Prop = PropData & PropAction;
+    export type Data = BoomData | NBoomData;
 
-    export function Component({isMainBoom, state, aroundMineNum, onCheck, onFlag}: Prop) {
-        let appearance: string;
-        const theState = getState(state.name)
-        switch (state.name) {
-            case "plain":
-            case "flagged":
-                appearance = theState.img as string
-                break;
-            case "checked":
-                appearance = theState.img[aroundMineNum]
-                break;
-            case "boom":
-                appearance = isMainBoom ? theState.img[1] : theState.img[0]
-                break;
+    export function Cpn({i, j}: Prop.T) {
+        const [mineMatrix, updateMineMatrix] = PlayArea.Ctx.useMineMatrix();
+        const [gameObj, dispatchGameObj] = App.Game.Ctx.useGameObj();
+        const data = mineMatrix.getData(i, j);
+        const appearance: string = getAppearance(data);
+
+        const gameOver = gameObj.isEnd();
+
+        function handleContextMenu(e: React.MouseEvent) {
+            e.preventDefault()
+            updateMineMatrix(m => {
+                try {
+                    m.flag(i, j)
+                } catch (e) {}
+            })
         }
 
-        function handleContextMenu(e) {
-            e.preventDefault();
-            onFlag();
+        function handleCheck(_: React.MouseEvent) {
+            updateMineMatrix(m => {
+                m.check(i, j, true);
+                if (data.type === Type.boom) {
+                    dispatchGameObj({
+                        type: "gameOver",
+                        res: App.Game.Result.lose
+                    })
+                }
+            })
         }
 
         return (
             <>
-                <button onClick={onCheck} onContextMenu={handleContextMenu}>
-                    <img src={appearance} alt={"扫雷块"}/>
-                </button>
+                {gameOver ?
+                    <button>
+                        <img src={appearance} alt={"扫雷块"}/>
+                    </button> :
+                    <button onClick={handleCheck} onContextMenu={handleContextMenu}>
+                        <img src={appearance} alt={"扫雷块"}/>
+                    </button>}
+
             </>
         )
     }

@@ -1,34 +1,29 @@
 import React from "react";
 import {Mine} from "./MineSpace/Mine";
+import {PlayArea} from "../PlayArea";
 
 export namespace MineSpace {
 
-  export interface PropData {
-    mineMatrix: Mine.PropData[][],   // 从左上角往右下角，从0行0列到最大行最大列
+  export namespace Prop {
+    export interface Data {
+    }
+    export interface Action {
+    }
+    export type T = Data & Action;
   }
 
-  export interface PropAction {
-    onCheckMine(row: number, col: number): void,    // 点击区域，将该区域的行下标和列下标传给父组件
-    onFlagMine(row: number, col: number): void,     // 给地雷区标旗
-  }
-
-  export type Prop = PropData & PropAction;
-
-  export function Component({mineMatrix, onCheckMine, onFlagMine}: Prop) {
-    const mines = mineMatrix.map((rowMinesData, i) => {
-      const rowMines = rowMinesData.map((mineData, j) => {
+  export function Cpn({}: Prop.T) {
+    const [mineMatrix, updateMineMatrix] = PlayArea.Ctx.useMineMatrix();
+    const mines = mineMatrix.data.map((rowMinesData, i) => {
+      const rowMines = rowMinesData.map((_, j) => {
         return (
-          <>
-            <Mine.Component {...mineData} onCheck={() => onCheckMine(i, j)} onFlag={() => onFlagMine(i, j)} key={j}/>
-          </>
+          <Mine.Cpn i={i} j={j} key={j}/>
         )
       })
       return (
-        <>
-          <div className={"flex flex-nowrap"} key={i}>
-            {rowMines}
-          </div>
-        </>
+        <div className={"flex flex-nowrap"} key={i}>
+          {rowMines}
+        </div>
       )
     })
 

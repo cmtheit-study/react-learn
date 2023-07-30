@@ -1,13 +1,12 @@
-import React from "react";
+import React, {createContext, useContext} from "react";
 import {Mine} from "./PlayArea/MineSpace/Mine";
-import {range, random} from "lodash";
-import {useImmer} from "use-immer";
+import {random, range} from "lodash";
+import {Updater, useImmer} from "use-immer";
 import {immerable} from "immer";
 import {MineSpace} from "./PlayArea/MineSpace";
+import {App} from "./App";
 
-interface MineData extends Mine.PropData {
-    isBoom: boolean
-}
+type MineData = Mine.BoomData | Mine.NBoomData
 
 class MineMatrix {
     data: MineData[][];
@@ -22,14 +21,11 @@ class MineMatrix {
         this.data = range(row).map(i =>
             range(col).map(j => {
                 return {
-                    isBoom: i * col + j < boomNum,
-                    isMainBoom: false,
-                    state: Mine.getState("plain"),
-                    aroundMineNum: 0
+                    type: i * col + j < boomNum ? Mine.Type.boom : Mine.Type.nBoom,
+                    state: 'unchecked'
                 }
             })
         )
-        this.boomNum = boomNum
     }
 
     get mineNumber() {
@@ -46,9 +42,9 @@ class MineMatrix {
         })
     }
 
-    getData(pos: [number, number])
-    getData(i: number, j: number)
-    getData(posOrI: [number, number] | number, j?: number) {
+    getData(pos: [number, number]): MineData
+    getData(i: number, j: number): MineData
+    getData(posOrI: [number, number] | number, j?: number): MineData {
         if (posOrI instanceof Array) {
             return this.data[posOrI[0]][posOrI[1]]
         } else {
@@ -56,143 +52,131 @@ class MineMatrix {
         }
     }
 
-    /**
-     * @param i row of check
-     * @param j col to check
-     * @return weather check boom
-     */
-    check(i: number, j: number): boolean {
-        if (this.data[i][j].state.name !== "checked") {
-            if (!this.data[i][j].isBoom) {
-                let cnt = 0;  // 雷数
-                const around: [number, number][] = []
-                if (i > 0) {
-                    around.unshift([i - 1, j])
-                    if (this.getData(around[0]).isBoom) {
-                        cnt++;
-                    }
-                    if (j > 0) {
-                        around.unshift([i - 1, j - 1])
-                        if (this.getData(around[0]).isBoom) {
-                            cnt++;
-                        }
-                    }
-                    if (j < this.col - 1) {
-                        around.unshift([i - 1, j + 1])
-                        if (this.getData(around[0]).isBoom) {
-                            cnt++;
-                        }
-                    }
-                }
-                if (i < this.row - 1) {
-                    around.unshift([i + 1, j])
-                    if (this.getData(around[0]).isBoom) {
-                        cnt++;
-                    }
-                    if (j > 0) {
-                        around.unshift([i + 1, j - 1])
-                        if (this.getData(around[0]).isBoom) {
-                            cnt++;
-                        }
-                        if (j < this.col - 1) {
-                            around.unshift([i + 1, j + 1])
-                            if (this.getData(around[0]).isBoom) {
-                                cnt++;
+    // 返回 [i, j] 块周围的炸弹区域和非炸弹区域
+    getSurround(i: number, j: number): [[number, number][], [number, number][]] {
+        const data = this.getData(i, j);
+        switch (data.type) {
+            case Mine.Type.boom:
+                throw Error("Cannot get surround number of a boom!");
+            case Mine.Type.nBoom:
+                const surroundBooms = []
+                const surroundNBooms = []
+                range(i - 1, i + 2).forEach(r => {
+                    if (this.data[r]) {
+                        range(j - 1, j + 2).forEach(c => {
+                            if (this.data[r][c]) {
+                                if (this.getData(r, c).type === Mine.Type.boom) {
+                                    surroundBooms.push([r, c])
+                                } else {
+                                    surroundNBooms.push([r, c])
+                                }
                             }
-                        }
+                        })
                     }
-                }
-                if (j > 0) {
-                    around.unshift([i, j - 1])
-                    if (this.getData(around[0]).isBoom) {
-                        cnt++;
-                    }
-                    if (j < this.col - 1) {
-                        around.unshift([i, j + 1])
-                        if (this.getData(around[0]).isBoom) {
-                            cnt++;
-                        }
-                    }
-                }
-                this.data[i][j].aroundMineNum = cnt;
-                this.data[i][j].state = Mine.getState("checked")
-                this.checked++;
-                if (cnt === 0) {
-                    around.forEach(([i, j]) => {
-                        this.check(i, j)
-                    })
-                }
-                if (this.checked === this.mineNumber - this.boomNum) {
-
-                }
-            } else {
-                this.data[i][j].isMainBoom = true
-                range(this.row).forEach(i => {
-                    range(this.col).forEach(j => {
-                        // 所有炸弹全部爆炸
-                        if (this.data[i][j].isBoom) {
-                            this.data[i][j].state = Mine.getState("boom")
-                        }
-                    });
-                });
-                return true;
-            }
+                })
+                return [surroundNBooms, surroundBooms];
+            default:
+                throw Error('Unknown type of mine.');
         }
-        return false;
+    }
+
+    check(i: number, j: number, purpose?: boolean) {
+        const data = this.getData(i, j);
+        switch (data.state) {
+            case "unchecked":
+            case "flagged":
+                switch (data.type) {
+                    case Mine.Type.boom:
+                        data.state = 'boomed';
+                        data.isMainBoom = !!purpose;
+                        if (data.isMainBoom) {
+                            this.data.forEach((rowData, r) => {
+                                rowData.forEach((data, c) => {
+                                    if (data.type === Mine.Type.boom && r !== i && c !== j) {
+                                        this.check(r, c, false)
+                                    }
+                                })
+                            })
+                        }
+                        break;
+                    case Mine.Type.nBoom:
+                        const [surroundNBooms, surroundBooms] = this.getSurround(i, j);
+                        data.state = "checked";
+                        this.checked++;
+                        if (surroundBooms.length === 0) {
+                            surroundNBooms.forEach(([posI, posJ]) => {
+                                this.check(posI, posJ)
+                            })
+                        }
+                        data.surround = surroundBooms.length;
+                        break;
+                }
+                break;
+            case "boomed":
+            case "checked":
+            default:
+                break
+        }
     }
 
     flag(i: number, j: number) {
-        switch (this.data[i][j].state.name) {
+        switch (this.data[i][j].state) {
             case "flagged":
-                this.data[i][j].state = Mine.getState("plain");
+                this.data[i][j].state = 'unchecked';
                 break
-            case "plain":
-                this.data[i][j].state = Mine.getState("flagged");
+            case "unchecked":
+                this.data[i][j].state = 'flagged';
                 break
+            default:
+                throw Error(`Cannot flag or un-flag mine ${[i, j]}`)
         }
     }
 }
 
 /**
+ * PlayArea 组件
  * 处理游戏主体逻辑
  */
 export namespace PlayArea {
-    export interface PropData {
-        row: number,
-        col: number,
-        boomNum: number
+    // 上下文
+    export namespace Ctx {
+        export const mineMatrix = createContext<MineMatrix>(null);
+        export const updateMineMatrix = createContext<Updater<MineMatrix>>(null);
+        export function useMineMatrix(): [MineMatrix, Updater<MineMatrix>] {
+            return [useContext(mineMatrix), useContext(updateMineMatrix)]
+        }
     }
 
-    export interface PropAction {
-        onGameOver(): void
+    // 属性
+    export namespace Prop {
+        export interface Data {
+            row: number,
+            col: number,
+            boomNum: number
+        }
+        export interface Action {
+        }
+        export type T = Data & Action;
     }
 
-    export type Prop = PropData & PropAction;
-
-    export function Component({ row, col, boomNum, onGameOver }: Prop) {
-        const initialMineMatrix = new MineMatrix(row, col, boomNum);
-        initialMineMatrix.randomize();
+    /// 组件
+    export function Cpn({ row, col, boomNum }: Prop.T) {
+        const initialMineMatrix = React.useMemo(() => {
+            const matrix = new MineMatrix(row, col, boomNum);
+            matrix.randomize();
+            return matrix;
+        }, [row, col, boomNum]);
 
         const [mineMatrix, updateMineMatrix] = useImmer<MineMatrix>(initialMineMatrix);
-        function handleCheckMine(i: number, j: number) {
-            updateMineMatrix(mm => {
-                if (mm.check(i, j)) {
-                    onGameOver();
-                }
-            })
-        }
-
-        function handleFlagMine(i: number, j: number) {
-            updateMineMatrix(mm => {
-                mm.flag(i, j);
-            })
-        }
-
         return (
             <>
-                <div>
-                    <MineSpace.Component mineMatrix={mineMatrix.data} onCheckMine={handleCheckMine} onFlagMine={handleFlagMine}/>
-                </div>
+                <Ctx.mineMatrix.Provider value={mineMatrix}>
+                    <Ctx.updateMineMatrix.Provider value={updateMineMatrix}>
+                        <div>
+                            <MineSpace.Cpn />
+                        </div>
+                    </Ctx.updateMineMatrix.Provider>
+                </Ctx.mineMatrix.Provider>
             </>
         )
     }
